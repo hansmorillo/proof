@@ -7,3 +7,9 @@ def health():
     return {"status": "ok",
             "module": "common",
             }
+
+@common_bp.get("/")
+def index():
+    return {"status": "ok",
+            "module": "common",
+            }
