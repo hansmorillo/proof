@@ -1,4 +1,4 @@
-from flask import Blueprint
+from flask import Blueprint, render_template
 
 common_bp = Blueprint("common" , __name__)
 
@@ -10,6 +10,4 @@ def health():
 
 @common_bp.get("/")
 def index():
-    return {"status": "ok",
-            "module": "common",
-            }
+    return render_template("home.html")
