@@ -1,6 +1,7 @@
-from flask import Blueprint, request, jsonify, render_template
+from flask import Blueprint, request, jsonify, render_template, g
 
 from app.services.auth_service import register_user, ServiceError, login_user
+from app.routes.authz import require_auth, require_role
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
@@ -66,3 +67,38 @@ def login():
 
     except ServiceError as e:
         return error_response(e.code, e.message, field=e.field, status=e.status)
+
+
+@auth_bp.get("/me")
+@require_auth
+def me():
+    claims = g.jwt_claims
+    return jsonify({
+        "ok": True,
+        "data": {
+            "sub": claims.get("sub"),
+            "role": claims.get("role"),
+            "iss": claims.get("iss"),
+            "aud": claims.get("aud"),
+            "iat": claims.get("iat"),
+            "exp": claims.get("exp"),
+        }
+    }), 200
+
+
+@auth_bp.get("/admin")
+@require_role("admin")
+def admin_only():
+    return jsonify({
+        "ok": True,
+        "message": "admin ok"
+    }), 200
+
+@auth_bp.get("/app")
+def app_landing():
+    return render_template("auth/app.html")
+
+@auth_bp.get("/admin-page")
+def admin_page():
+    return render_template("auth/admin.html")
+

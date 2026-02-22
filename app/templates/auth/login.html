@@ -85,7 +85,12 @@ form.addEventListener("submit", async (e) => {
   tokenPre.textContent = token;
   tokenBox.classList.remove("d-none");
   showAlert("success", "Token issued.");
+
+  localStorage.setItem("access_token", token);
+  window.location.href = "/auth/app";
 });
+
+
 
 copyBtn.addEventListener("click", () => {
   const token = tokenPre.textContent.trim();

@@ -125,7 +125,7 @@ def login_user(email_raw: str, password: str) -> dict:
         )
 
     token = issue_access_token(
-        sub=str(user.id),
+        sub=str(user.uuid),
         role=getattr(user, "role", "user"),      # role claim (default if don't have column yet)
         secret=str(Config.JWT_SECRET_KEY),
         algorithm=str(Config.JWT_ALGORITHM),

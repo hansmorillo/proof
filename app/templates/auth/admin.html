@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Admin{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card shadow-sm">
+      <div class="card-body p-4">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h1 class="h5 mb-1">Admin Only</h1>
+            <p class="text-muted mb-0">This page calls <code>GET /auth/admin</code> with your JWT.</p>
+          </div>
+          <div class="d-flex gap-2">
+            <a class="btn btn-outline-secondary btn-sm" href="/auth/app">Back</a>
+            <a class="btn btn-outline-primary btn-sm" href="/auth/login">Login</a>
+          </div>
+        </div>
+
+        <div id="alertBox" class="alert d-none mt-3" role="alert"></div>
+
+        <hr class="my-4">
+
+        <h2 class="h6 mb-2">Result</h2>
+        <pre class="border rounded p-3 bg-light small mb-0" id="resultPre">Loading...</pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const alertBox = document.getElementById("alertBox");
+const resultPre = document.getElementById("resultPre");
+
+function showAlert(type, msg) {
+  alertBox.className = "alert alert-" + type + " mt-3";
+  alertBox.textContent = msg;
+  alertBox.classList.remove("d-none");
+}
+
+function getToken() {
+  return localStorage.getItem("access_token") || "";
+}
+
+(async function init() {
+  const token = getToken();
+  if (!token) {
+    showAlert("warning", "No token found. Please login first.");
+    resultPre.textContent = "No token.";
+    return;
+  }
+
+  try {
+    const res = await fetch("/auth/admin", {
+      headers: { "Authorization": "Bearer " + token }
+    });
+    const data = await res.json().catch(() => null);
+
+    if (!res.ok) {
+      const msg = data?.error?.message || data?.message || "Access denied.";
+      showAlert(res.status === 403 ? "danger" : "warning", msg);
+      resultPre.textContent = JSON.stringify(data, null, 2);
+      return;
+    }
+
+    showAlert("success", "Access granted.");
+    resultPre.textContent = JSON.stringify(data, null, 2);
+
+  } catch (e) {
+    showAlert("danger", "Network error. Is the server running?");
+    resultPre.textContent = "Network error.";
+  }
+})();
+</script>
+{% endblock %}
