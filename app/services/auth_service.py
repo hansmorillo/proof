@@ -4,8 +4,12 @@ from typing import Optional
 from sqlalchemy.exc import IntegrityError
 from email_validator import validate_email, EmailNotValidError
 
+import app.config as config
+from app import Config
+
 from app.extensions import db, bcrypt
 from app.models import User
+from app.services.jwt_service import issue_access_token
 
 
 @dataclass
@@ -89,3 +93,49 @@ def register_user(email_raw: str, password: str) -> User:
         )
 
     return user
+
+
+def login_user(email_raw: str, password: str) -> dict:
+    """
+    Logic:
+    1. validate inputs
+    2. normalize email
+    3. fetch user
+    4. verify password hash
+    5. issue JWT access token
+    """
+
+    email = _normalize_email(email_raw or "").strip()
+    _validate_password(password, min_length=8)
+
+    user = User.query.filter_by(email=email).first()
+    if user is None:
+        # generic to prevent account enumeration
+        raise ServiceError(
+            "Authentication Error",
+            "Invalid Credentials",
+            status=401,
+        )
+
+    if not bcrypt.check_password_hash(user.password_hash, password):
+        raise ServiceError(
+            "Authentication Error",
+            "Invalid Credentials",
+            status=401,
+        )
+
+    token = issue_access_token(
+        sub=str(user.id),
+        role=getattr(user, "role", "user"),      # role claim (default if don't have column yet)
+        secret=str(Config.JWT_SECRET_KEY),
+        algorithm=str(Config.JWT_ALGORITHM),
+        issuer=str(Config.JWT_ISSUER),
+        audience=str(Config.JWT_AUDIENCE),
+        exp_seconds=int(Config.JWT_EXP_SECONDS),
+    )
+
+    return {
+        "access_token": token,
+        "token_type": "Bearer",
+        "expires_in": int(Config.JWT_EXP_SECONDS),
+    }
