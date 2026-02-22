@@ -1,34 +1,29 @@
-from flask import Flask
-
-# import modules
 import os
-
+from flask import Flask
 
 # import applications
 from app.extensions import db
-from app.config import Config, instance_path
-from app.models.user import User
+from app.config import Config
 
 def create_app():
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_object(Config)
 
-    # application db setup
-    os.makedirs(instance_path, exist_ok=True) # ensure db directory exists
+    # ensure instance/ exists
+    os.makedirs(app.instance_path, exist_ok=True) # ensure db directory exists
+    # initialize db
     db.init_app(app)
 
     # blueprint registers
-    # import routes
-    from .common.routes import common_bp
-    from .auth.routes import auth_bp
-
-    app.register_blueprint(common_bp)
+    from app.routes import auth_bp, common_bp
     app.register_blueprint(auth_bp)
+    app.register_blueprint(common_bp)
 
-    # create tables once
-    with app.app_context():
-        from app import models
-        db.create_all()
+    # Create tables in development only (optional)
+    if app.config.get("AUTO_CREATE_TABLES", True):
+        with app.app_context():
+            from app import models  # registers models
+            db.create_all()
 
 
     return app
